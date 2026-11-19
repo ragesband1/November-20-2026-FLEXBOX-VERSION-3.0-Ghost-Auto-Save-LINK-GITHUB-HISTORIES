@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="tl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NO LINK = BROWSE DIALOG + GHOSTING AUTO-SAVE (1-54)</title>
+<style>
+body{margin:0;padding:0;height:100vh;width:100vw;overflow:hidden;background:black;position:relative;font-family:Arial,sans-serif}
+.background{position:absolute;top:0;left:0;width:100%;height:100%;background-image:url('1.jpeg');background-size:cover;background-position:center;transition:opacity 0.4s ease;z-index:1;filter:contrast(1.2) saturate(1.4) brightness(1.1)}
+.gradient-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(255,0,255,0.4);animation:bodyGradient 2.5s infinite linear, septicFlash 0.2s infinite;z-index:2}
+.border{position:absolute;top:0;left:0;width:100%;height:100%;box-sizing:border-box;border:12px solid transparent;border-image-slice:1;border-image-source:linear-gradient(45deg,magenta,deeppink,red,purple);border-image-repeat:stretch;animation:borderPulse 0.7s infinite, septicShock 0.12s infinite;z-index:3}
+@keyframes septicShock{0%{transform:translate(0,0)}15%{transform:translate(-3px,2px) skew(1.5deg)}30%{transform:translate(3px,-2px) skew(-1.5deg)}100%{transform:translate(0,0)}}
+@keyframes septicFlash{0%,90%,100%{opacity:1}95%{opacity:0.8;filter:brightness(2)}}
+@keyframes bodyGradient{0%{filter:hue-rotate(0deg)}100%{filter:hue-rotate(360deg)}}
+@keyframes borderPulse{0%{border-color:magenta}50%{border-color:cyan}100%{border-color:magenta}}
+
+.grid-container{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:grid;grid-template-columns:repeat(10,80px);grid-template-rows:repeat(6,80px);gap:10px;z-index:10;max-width:95vw;max-height:90vh;overflow:auto;padding:6px}
+.box{width:80px;height:80px;display:flex;flex-direction:column;justify-content:center;align-items:center;background:transparent;border:3px solid transparent;border-radius:15px;cursor:pointer;font-size:10px;font-weight:900;color:white;animation:neonBlink 1s infinite alternate;box-shadow:inset 0 0 0 3px var(--neon-color,magenta),0 0 10px var(--neon-color),0 0 20px var(--neon-color);text-align:center;position:relative;user-select:none;line-height:1.2;padding:2px;box-sizing:border-box}
+.box.has-link{border-color:lime;background:rgba(0,255,0,0.12);box-shadow:inset 0 0 0 3px lime,0 0 15px lime,0 0 25px lime;color:lime;animation:none}
+.box.timer-active{border-color:yellow;background:rgba(255,255,0,0.14);box-shadow:inset 0 0 0 3px yellow,0 0 14px yellow,0 0 22px yellow;color:yellow;animation:none}
+.box.page-full-yellow{border-color:yellow;background:rgba(255,255,0,0.22);box-shadow:inset 0 0 0 3px yellow,0 0 16px yellow,0 0 28px yellow;color:yellow;animation:none}
+
+/* HABAMBUHAY NA NEON RAINBOW KAPAG NA-CLICK ANG LINK (HANGGANG SA MAG-REFRESH) */
+.box.neon-rainbow-forever{
+  animation: neonRainbowCycle 1.6s linear infinite !important;
+  background: rgba(0, 0, 0, 0.35) !important;
+}
+.box.neon-rainbow-forever .box-num{
+  animation: neonRainbowTextCycle 1.6s linear infinite !important;
+}
+@keyframes neonRainbowCycle{
+  0%{border-color:#ff004c;color:#ff004c;box-shadow:inset 0 0 0 3px #ff004c,0 0 14px #ff004c,0 0 28px #ff004c}
+  17%{border-color:#ff7b00;color:#ff7b00;box-shadow:inset 0 0 0 3px #ff7b00,0 0 14px #ff7b00,0 0 28px #ff7b00}
+  34%{border-color:#ffe600;color:#ffe600;box-shadow:inset 0 0 0 3px #ffe600,0 0 14px #ffe600,0 0 28px #ffe600}
+  51%{border-color:#00ff66;color:#00ff66;box-shadow:inset 0 0 0 3px #00ff66,0 0 14px #00ff66,0 0 28px #00ff66}
+  68%{border-color:#00f0ff;color:#00f0ff;box-shadow:inset 0 0 0 3px #00f0ff,0 0 14px #00f0ff,0 0 28px #00f0ff}
+  85%{border-color:#b700ff;color:#b700ff;box-shadow:inset 0 0 0 3px #b700ff,0 0 14px #b700ff,0 0 28px #b700ff}
+  100%{border-color:#ff004c;color:#ff004c;box-shadow:inset 0 0 0 3px #ff004c,0 0 14px #ff004c,0 0 28px #ff004c}
+}
+@keyframes neonRainbowTextCycle{
+  0%{color:#ff004c;text-shadow:0 0 10px #ff004c}
+  17%{color:#ff7b00;text-shadow:0 0 10px #ff7b00}
+  34%{color:#ffe600;text-shadow:0 0 10px #ffe600}
+  51%{color:#00ff66;text-shadow:0 0 10px #00ff66}
+  68%{color:#00f0ff;text-shadow:0 0 10px #00f0ff}
+  85%{color:#b700ff;text-shadow:0 0 10px #b700ff}
+  100%{color:#ff004c;text-shadow:0 0 10px #ff004c}
+}
+
+.box-num{font-size:14px;font-weight:900;color:cyan;text-shadow:0 0 8px cyan;margin-bottom:2px}
+.box.has-link .box-num{color:lime;text-shadow:0 0 8px lime}
+.box.timer-active .box-num,.box.page-full-yellow .box-num{color:yellow;text-shadow:0 0 8px yellow}
+@keyframes neonBlink{0%{text-shadow:0 0 10px cyan}100%{text-shadow:0 0 20px magenta}}
+.box:nth-child(odd){--neon-color:magenta}.box:nth-child(even){--neon-color:cyan}
+
+/* MODAL & GHOSTING DIALOG STYLES */
+.modal{display:none;position:fixed;z-index:999;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.6)}
+.modal-content{background:#fefefe;margin:12% auto;padding:20px;border-radius:10px;width:85%;max-width:420px;position:relative;text-align:center}
+
+/* GHOSTING EFFECT */
+.ghost-dialog{
+  background: rgba(15, 0, 25, 0.72) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 2px solid cyan;
+  box-shadow: 0 0 25px magenta, inset 0 0 15px rgba(0,255,255,0.4);
+  color: #fff;
+  animation: ghostFloat 2.5s ease-in-out infinite alternate;
+}
+@keyframes ghostFloat{
+  0%{opacity:0.78;transform:translateY(-4px) scale(0.99);box-shadow:0 0 15px cyan}
+  100%{opacity:0.98;transform:translateY(4px) scale(1.01);box-shadow:0 0 30px magenta}
+}
+
+.close{position:absolute;top:10px;right:15px;font-size:28px;font-weight:bold;cursor:pointer;color:inherit}
+.link-button{display:inline-block;background:blue;color:#fff;padding:12px 24px;margin-top:10px;border-radius:5px;border:none;cursor:pointer;font-weight:900;min-width:120px}
+.link-button.active-link{background:lime;color:black;box-shadow:0 0 15px lime}
+.browse-box{border:4px solid lime;box-shadow:0 0 20px lime;animation:septicShock 0.1s infinite;background:#fefefe;color:#000}
+
+.ghost-input{
+  width:90%;
+  padding:10px;
+  margin:10px 0;
+  border-radius:6px;
+  border:2px solid magenta;
+  background:rgba(0,0,0,0.65);
+  color:cyan;
+  font-weight:bold;
+  text-align:center;
+  outline:none;
+}
+.ghost-input::placeholder{color:rgba(255,255,255,0.5)}
+.status-badge{
+  display:inline-block;
+  padding:4px 10px;
+  border-radius:12px;
+  font-size:11px;
+  font-weight:900;
+  margin-bottom:8px;
+}
+.status-empty{background:rgba(255,0,85,0.3);border:1px solid #ff0055;color:#ff88aa}
+.status-filled{background:rgba(0,255,0,0.25);border:1px solid lime;color:lime}
+#netIndicator{
+  position:fixed;bottom:16px;right:20px;z-index:50;
+  padding:6px 12px;border-radius:8px;font-size:11px;font-weight:900;
+  background:rgba(0,0,0,0.75);color:lime;border:1px solid lime;pointer-events:none;
+}
+</style>
+</head>
+<body>
+<div class="background"></div>
+<div class="gradient-overlay"></div>
+<div class="border"></div>
+<div class="grid-container" id="grid"></div>
+<div id="netIndicator">ONLINE • STAY ACTIVE</div>
+
+<!-- DIALOG 1: GHOSTING DIALOG BOX (MAY LAMAN O WALA + AUTO SAVE) -->
+<div id="myModal" class="modal">
+  <div class="modal-content ghost-dialog">
+    <span class="close" onclick="closeAll()">×</span>
+    <div id="boxTitle" style="font-size:14px;color:cyan;font-weight:900;margin-bottom:4px;">FLEXBOX 1</div>
+    <div id="linkStatusBadge" class="status-badge status-empty">WALANG LAMAN NA LINK</div>
+    <p style="margin:6px 0;font-weight:bold;">CLICK THIS LINK HERE:</p>
+
+    <!-- MATIC AUTO-SAVE INPUT HABANG NAGTA-TYPE -->
+    <input type="text" id="ghostLinkInput" class="ghost-input" placeholder="Mag-type/paste ng link (Matic Save)..." autocomplete="off" />
+    <div id="saveNotice" style="font-size:10px;color:lime;height:14px;"></div>
+
+    <button class="link-button" id="noLinkBtn">No Link</button>
+    <button class="link-button" style="background:#ff0055;min-width:80px;margin-left:6px;" id="clearLinkBtn">Clear</button>
+  </div>
+</div>
+
+<!-- DIALOG 2 - BROWSE MAIN PAGE -->
+<div id="browseModal" class="modal">
+  <div class="modal-content browse-box">
+    <span class="close" onclick="closeAll()">×</span>
+    <p style="font-weight:900;font-size:18px;color:blue;">BROWSING MAIN PAGE...</p>
+    <p>Ghost Auto Save Main</p>
+    <button class="link-button" style="background:lime;color:black;" onclick="goMain()">GO TO MAIN</button>
+  </div>
+</div>
+
+<script>
+// 1. BACKGROUND SLIDESHOW (PERMANENT CODE)
+let index=1;const totalImages=13;const bg=document.querySelector('.background');
+setInterval(()=>{bg.style.opacity=0;setTimeout(()=>{bg.style.backgroundImage=`url('${index}.jpeg')`;bg.style.opacity=1;index=(index%totalImages)+1;},400);},2000);
+
+// 2. LINKS 1 TO 54 (MOVE ON 1 HANGGANG GHOST AUTO SAVE 54)
+const LINKS_1_TO_54 = [
+  "https://ragesband1.github.io/November-14-2026-Siquijor-Love-Potion---Gemini-Chat-Archive-Guide/",
+  "https://ragesband1.github.io/November-14-2026-Messages---Gemini-x-Siquijor-Folklore-Chat/",
+  "https://ragesband1.github.io/November-14-2026-OmniAI-Studio---Next-Gen-AI-Assistant-Creative-Suite/",
+  "https://ragesband1.github.io/November-14-2026-ORIGINAL-AI-CHAT---Ian-AI-Studio/",
+  "https://ragesband1.github.io/November-14-2026-Ultimate-All-In-One-Master-Arcade-and-OmniAI-Studio/",
+  "https://ragesband1.github.io/November-14-2026-ULTIMATE-MASTER-ARCADE-2026---ALL-IN-ONE/",
+  "https://ragesband1.github.io/November-16-2026-Daniela-Love-Potion-for-Siquijor-Levels-1-100-/",
+  "https://ragesband1.github.io/November-16-2026-Daniela-Love-Potion---Siquijor-Game/",
+  "https://ragesband1.github.io/November-16-2026-Daniela-Love-Potion-Country-Polyamory-Game/",
+  "https://ragesband1.github.io/November-16-2026-Daniela-Love-Potion-for-Siquijor/",
+  "https://ragesband1.github.io/November-17-2026-Gayuma-Marathon-Polyamory-vs-Monogamy/",
+  "https://ragesband1.github.io/November-17-2026-Gayuma-Marathon---Polyamory-vs-Monogamy/",
+  "https://ragesband1.github.io/November-17-2026-Polyamorous-vs.-Monogamous-195-Country-States-Challenge/",
+  "https://ragesband1.github.io/November-17-2026-Polyamorous-Vs-Monogamous---195-Country-States/",
+  "https://ragesband1.github.io/November-17-2026-Love-Potion-Name-Mastery-100-Levels-/",
+  "https://ragesband1.github.io/November-17-2026-Fill-Full-Name---Single-to-Polyamorous-Girlfriends/",
+  "https://ragesband1.github.io/November-17-2026-Daniela-Love-Potion-Polyamory-Arcade-Hub-Levels-1-100-/",
+  "https://ragesband1.github.io/November-17-2026-ULTIMATE-5-GAMES---Daniela-Love-Potion-Master-Collection/",
+  "https://ragesband1.github.io/November-17-2026-Daniela-Love-Potion-Arcade/",
+  "https://ragesband1.github.io/November-17-2026-Daniela-Love-Potion-Games-Overall-In-Siquijor-2026/",
+  "https://ragesband1.github.io/November-17-2026-Daniela-Love-Potion-Games-Overall-In-Siquijor-2026-2/",
+  "https://ragesband1.github.io/November-17-2026-Don-t-Chase-The-Mono-Maze/",
+  "https://ragesband1.github.io/November-17-2026-Don-t-Chase-The-Mono-Maze-2/",
+  "https://ragesband1.github.io/November-17-2026-DON-T-CHASE-THE-MONO-MAZE-LONGLIVE-POLYAMORY-MAZE-/",
+  "https://ragesband1.github.io/November-17-2026-Don-t-Chase-The-Mono-Maze-3/",
+  "https://ragesband1.github.io/November-17-2026-Don-t-Chase-The-Mono-Maze-4/",
+  "https://ragesband1.github.io/November-17-2026-Don-t-Chase-The-Mono-Maze-5/",
+  "https://ragesband1.github.io/November-17-2026-City-Love-Potions-For-Colored-People/",
+  "https://ragesband1.github.io/November-17-2026-City-Love-Potions-For-Colored-People-2/",
+  "https://ragesband1.github.io/November-17-2026-City-Love-Potions-for-Colored-People-3/",
+  "https://ragesband1.github.io/November-17-2026-City-Love-Potions-For-Colored-People-4/",
+  "https://ragesband1.github.io/November-17-2026-City-Love-Potions-for-Colored-People-5/",
+  "https://www.jabali.ai/play/04756169-9172-41c0-bd7c-750f089e4698/quick-game/city-sparks-consent-quest/",
+  "https://city-love-potions-for-colored-people.ai.studio/",
+  "https://ragesband1.github.io/November-17-2026-City-Love-Potions---2D-Stealth-Romance-Game/",
+  "https://ragesband1.github.io/November-17-2026-City-Love-Potions-For-Colored-People---2D-Canvas-Game/",
+  "https://ragesband1.github.io/November-17-2026-City-Love-Potions-For-Colored-People---All-in-One-Playlist/",
+  "https://ragesband1.github.io/November-17-2026-Don-t-Chase-The-Monogamy-And-City-Love-Potions-For-Colored-People-2026-GAMES/",
+  "https://ragesband1.github.io/November-17-2026-City-Love-Potions-For-Colored-People---All-in-One-Playlist/",
+  "https://ragesband1.github.io/November-17-2026-Don-t-Chase-The-Monogamy-And-City-Love-Potions-For-Colored-People-2026-GAMES-2/",
+  "https://ragesband1.github.io/November-17-2026-Happy-27th-Birthday-Ian-Patrick-Batungbacal-/",
+  "https://ragesband1.github.io/November-17-2026-Happy-27th-Birthday-Ian-Patrick-Batungbacal-2/",
+  "https://ragesband1.github.io/November-17-2026-Happy-27th-Birthday-Ian-Patrick-Batungbacal---Nov-18-2026/",
+  "https://ragesband1.github.io/November-17-2026-Happy-27th-Birthday-Ian-Patrick-Batungbacal-3/",
+  "https://ragesband1.github.io/November-17-2026-100-GAMES---Happy-27th-Birthday-Ian-Patrick-Batungbacal---50x-2D-50x-3D/",
+  "https://ragesband1.github.io/November-17-2026-Happy-27th-Birthday---100-Game-Animations-Portal/",
+  "https://ragesband1.github.io/November-17-2026-MrBeast-6-000-Challenge-100-Pro-Game-Animations/",
+  "https://ragesband1.github.io/November-17-2026-100-GAMES---MR-BEAST-6-000-CHALLENGE---50x-2D-50x-3D/",
+  "https://ragesband1.github.io/November-17-2026-T-Series-India-Music-Million-Challenge---100-Game-Animations-Hub/",
+  "https://ragesband1.github.io/November-17-2026-100-GAMES---T-SERIES-INDIA-MUSIC-MILLION-CHALLENGE---50x-2D-50x-3D/",
+  "https://ragesband1.github.io/November-18-2026-Ian-s-27th-Birthday-Monopoly/",
+  "https://ragesband1.github.io/November-18-2026-Monopoly---Happy-27th-Birthday-Ian-Patrick-Batungbacal/",
+  "https://ragesband2.github.io/November-18-2026-Happy-27th-Birthday-Ian-Patrick-Batungbacal-2026/",
+  "https://ragesband2.github.io/November-18-2026-Overall-Happy-27th-Birthday-Ian-Patrick-Batungbacal-2026/"
+];
+
+// AUTO-SAVE STORAGE & STATE (NAKIKITA AGAD ANG LINK SA MAG-TYPE/PASTE + RESET SA REFRESH)
+const STORAGE_KEY = 'septic_shock_ghost_links_v2_clean';
+let savedLinks = {};
+let boxTimers = {};
+let pageFullYellow = {};
+let rainbowClickedForever = {};
+
+try {
+  localStorage.removeItem('septic_shock_ghost_links_v1');
+  localStorage.removeItem('septic_shock_restore_timers_v1');
+  localStorage.removeItem(STORAGE_KEY);
+} catch (e) {}
+
+// I-LOAD ANG 1-54 LINKS PARA MAKIKITA MO AGAD SA INPUT BOX
+for (let k = 0; k < LINKS_1_TO_54.length; k++) {
+  savedLinks[k] = LINKS_1_TO_54[k];
+}
+
+let activeBoxIndex = null;
+
+// 3. GENERATE 54 FLEXBOX/GRID ITEMS (MOVE ON 1 HANGGANG GHOST AUTO SAVE 54)
+const container = document.getElementById('grid');
+const boxElements = [];
+const TOTAL_BOXES = 54;
+
+for (let i = 0; i < TOTAL_BOXES; i++) {
+  const b = document.createElement('div');
+  b.className = 'box';
+  boxTimers[i] = { sec: 3, hadLink: Boolean((savedLinks[i] || '').trim()) };
+  pageFullYellow[i] = false;
+  rainbowClickedForever[i] = false;
+  updateBoxAppearance(b, i);
+  b.onclick = () => {
+    openGhostDialog(i);
+  };
+  container.appendChild(b);
+  boxElements.push(b);
+}
+
+function getBoxLabel(idx) {
+  const num = idx + 1;
+  if (num === 1) return 'Move On 1';
+  if (num === TOTAL_BOXES) return 'Ghost Auto Save 54';
+  return `Move On ${num} / Ghost Auto Save ${num}`;
+}
+
+function saveToStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedLinks));
+  } catch (e) {}
+}
+
+function updateBoxAppearance(el, idx) {
+  const boxNumber = idx + 1;
+  const val = (savedLinks[idx] || '').trim();
+  const timerState = boxTimers[idx] || { sec: 3, hadLink: false };
+  const isRainbowForever = Boolean(rainbowClickedForever[idx]);
+
+  el.classList.remove('has-link', 'timer-active', 'page-full-yellow', 'neon-rainbow-forever');
+
+  if (isRainbowForever) {
+    el.classList.add('neon-rainbow-forever');
+    el.innerHTML = `<span class="box-num">${boxNumber}</span><span style="font-size:7px;">Ghost Auto Save</span><span style="font-size:8px;">${timerState.sec}s • RAINBOW</span>`;
+  } else if (pageFullYellow[idx]) {
+    el.classList.add('page-full-yellow');
+    el.innerHTML = `<span class="box-num">${boxNumber}</span><span style="font-size:7px;">Ghost Auto Save</span><span style="font-size:8px;color:yellow;">${timerState.sec}s • YELLOW</span>`;
+  } else if (val) {
+    el.classList.add('has-link');
+    el.innerHTML = `<span class="box-num">${boxNumber}</span><span style="font-size:7px;">Ghost Auto Save</span><span style="font-size:8px;color:lime;">${timerState.sec}s • [LINK]</span>`;
+  } else if (timerState.hadLink) {
+    el.classList.add('timer-active');
+    el.innerHTML = `<span class="box-num">${boxNumber}</span><span style="font-size:7px;">Ghost Auto Save</span><span style="font-size:12px;">${timerState.sec}s</span>`;
+  } else {
+    el.classList.add('timer-active');
+    el.innerHTML = `<span class="box-num">${boxNumber}</span><span style="font-size:7px;">Ghost Auto Save</span><span style="font-size:12px;">${timerState.sec}s</span>`;
+  }
+}
+
+// 3-SECOND TIMER SA LOOB NG BAWAT FLEXBOX:
+// - KUNG MAY LAMAN: pag-abot ng 0s, nade-delete at bumabalik sa dati (blangko/walang laman)
+// - KUNG WALANG LAMAN: may 3s timer pa rin pero blangko pa rin ang babalik
+setInterval(() => {
+  for (let i = 0; i < TOTAL_BOXES; i++) {
+    const currentVal = (savedLinks[i] || '').trim();
+    const hasLinkNow = currentVal.length > 0;
+
+    if (!boxTimers[i]) {
+      boxTimers[i] = { sec: 3, hadLink: hasLinkNow };
+    }
+
+    if (hasLinkNow) {
+      boxTimers[i].hadLink = true;
+    }
+
+    boxTimers[i].sec -= 1;
+
+    if (boxTimers[i].sec <= 0) {
+      if (boxTimers[i].hadLink || hasLinkNow) {
+        // MAY LAMAN -> LAGI SYANG MADE-DELETE AT BABALIK SA DATI (BLANGKO)
+        delete savedLinks[i];
+        saveToStorage();
+        boxTimers[i].hadLink = false;
+        if (activeBoxIndex === i && myModal.style.display === 'block') {
+          ghostInput.value = '';
+          syncDialogButtonState('');
+          saveNotice.style.color = '#ff88aa';
+          saveNotice.innerText = '✓ Na-delete at bumalik sa dati (blangko)!';
+        }
+      } else {
+        // WALANG LAMAN -> WALANG LAMAN DIN ANG NASA TIMER / BABALIK
+        delete savedLinks[i];
+        saveToStorage();
+        if (activeBoxIndex === i && myModal.style.display === 'block' && !ghostInput.value.trim()) {
+          syncDialogButtonState('');
+          saveNotice.style.color = '#ff88aa';
+          saveNotice.innerText = 'Walang laman (blangko)';
+        }
+      }
+      boxTimers[i].sec = 3;
+    }
+
+    updateBoxAppearance(boxElements[i], i);
+  }
+}, 1000);
+
+// 4. GHOSTING DIALOG LOGIC
+const myModal = document.getElementById('myModal');
+const browseModal = document.getElementById('browseModal');
+const ghostInput = document.getElementById('ghostLinkInput');
+const noLinkBtn = document.getElementById('noLinkBtn');
+const badge = document.getElementById('linkStatusBadge');
+const saveNotice = document.getElementById('saveNotice');
+
+function openGhostDialog(idx) {
+  activeBoxIndex = idx;
+  const presetUrl = LINKS_1_TO_54[idx] || '';
+  document.getElementById('boxTitle').innerText = `FLEXBOX ${idx + 1} • ${getBoxLabel(idx)} (GHOSTING DIALOG)`;
+  let currentVal = (savedLinks[idx] || '').trim();
+  if (!currentVal && presetUrl) {
+    currentVal = presetUrl;
+    savedLinks[idx] = currentVal;
+    boxTimers[idx] = { sec: 3, hadLink: true };
+  }
+  ghostInput.value = currentVal;
+  saveNotice.style.color = 'lime';
+  saveNotice.innerText = currentVal
+    ? '✓ Link makikita & naka-save (3s timer)'
+    : 'Walang naka-save na link (3s timer)';
+  syncDialogButtonState(currentVal);
+  updateBoxAppearance(boxElements[idx], idx);
+  myModal.style.display = 'block';
+  setTimeout(() => {
+    ghostInput.focus();
+  }, 30);
+}
+
+function syncDialogButtonState(val) {
+  const clean = val.trim();
+  if (clean.length > 0) {
+    badge.className = 'status-badge status-filled';
+    badge.innerText = 'MAY LAMAN NA LINK ✓';
+    noLinkBtn.innerText = 'OPEN SAVED LINK';
+    noLinkBtn.classList.add('active-link');
+  } else {
+    badge.className = 'status-badge status-empty';
+    badge.innerText = 'WALANG LAMAN NA LINK';
+    noLinkBtn.innerText = 'No Link';
+    noLinkBtn.classList.remove('active-link');
+  }
+}
+
+// MATIC AUTO-SAVE HABANG NAGTA-TYPE O NAGPE-PASTE
+ghostInput.addEventListener('input', function () {
+  if (activeBoxIndex === null) return;
+  const val = this.value.trim();
+  if (val.length > 0) {
+    savedLinks[activeBoxIndex] = val;
+    boxTimers[activeBoxIndex] = { sec: 3, hadLink: true };
+    saveNotice.style.color = 'lime';
+    saveNotice.innerText = '✓ Matic Saved!';
+  } else {
+    delete savedLinks[activeBoxIndex];
+    boxTimers[activeBoxIndex] = { sec: 3, hadLink: false };
+    saveNotice.style.color = '#ff88aa';
+    saveNotice.innerText = 'Cleared (Blangko)';
+  }
+  saveToStorage();
+  updateBoxAppearance(boxElements[activeBoxIndex], activeBoxIndex);
+  syncDialogButtonState(val);
+});
+
+// CLEAR BUTTON -> BURADO AGAD AT BABALIK SA DATI (BLANGKO)
+document.getElementById('clearLinkBtn').addEventListener('click', function () {
+  if (activeBoxIndex === null) return;
+  ghostInput.value = '';
+  delete savedLinks[activeBoxIndex];
+  boxTimers[activeBoxIndex] = { sec: 3, hadLink: false };
+  pageFullYellow[activeBoxIndex] = false;
+  saveToStorage();
+  updateBoxAppearance(boxElements[activeBoxIndex], activeBoxIndex);
+  syncDialogButtonState('');
+  saveNotice.style.color = '#ff88aa';
+  saveNotice.innerText = '✓ Na-clear at bumalik sa dati!';
+});
+
+function closeAll() {
+  myModal.style.display = 'none';
+  browseModal.style.display = 'none';
+}
+function goMain() {
+  closeAll();
+}
+
+// LINK BUTTON CLICK: KUNG WALANG LAMAN = LABAS BROWSE DIALOG BOX | KUNG MAY LAMAN = BUKAS LINK + HABAMBUHAY NEON RAINBOW
+noLinkBtn.addEventListener('click', function (e) {
+  e.preventDefault();
+  const currentLink = activeBoxIndex !== null ? (savedLinks[activeBoxIndex] || ghostInput.value || '').trim() : '';
+
+  if (!currentLink) {
+    myModal.style.display = 'none';
+    setTimeout(() => {
+      browseModal.style.display = 'block';
+    }, 200);
+  } else {
+    if (activeBoxIndex !== null) {
+      rainbowClickedForever[activeBoxIndex] = true;
+      pageFullYellow[activeBoxIndex] = true;
+      updateBoxAppearance(boxElements[activeBoxIndex], activeBoxIndex);
+    }
+    let formattedUrl = currentLink;
+    if (!/^https?:\/\//i.test(formattedUrl)) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
+    window.open(formattedUrl, '_blank', 'noopener,noreferrer');
+  }
+});
+
+window.onclick = (e) => {
+  if (e.target === myModal) myModal.style.display = 'none';
+  if (e.target === browseModal) closeAll();
+};
+
+// 5. NETWORK INDICATOR & STAY ACTIVE
+const netIndicator = document.getElementById('netIndicator');
+
+function updateNetworkStatus() {
+  if (!navigator.onLine) {
+    netIndicator.innerText = 'OFFLINE';
+    netIndicator.style.color = '#ff0055';
+    netIndicator.style.borderColor = '#ff0055';
+  } else {
+    netIndicator.innerText = 'ONLINE • STAY ACTIVE';
+    netIndicator.style.color = 'lime';
+    netIndicator.style.borderColor = 'lime';
+  }
+}
+
+window.addEventListener('offline', updateNetworkStatus);
+window.addEventListener('online', updateNetworkStatus);
+updateNetworkStatus();
+
+history.pushState(null, document.title, location.href);
+window.addEventListener('popstate', function () {
+  history.pushState(null, document.title, location.href);
+});
+
+window.addEventListener('beforeunload', function (e) {
+  e.preventDefault();
+  e.returnValue = '';
+});
+</script>
+</body>
+</html>
